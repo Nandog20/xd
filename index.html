@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escapist High: Sakura Chronicle - Simulador de Vida Escolar</title>
+    <!-- Google Fonts: Outfit for modern UI, VT323 for retro arcade details -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=VT323&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Sound toggle -->
+    <button id="sfx-toggle" class="sfx-btn" title="Activar/Desactivar Sonido">🔊</button>
+
+    <!-- PANTALLA DE INICIO (Character Creation) -->
+    <div id="start-screen" class="screen active">
+        <div class="start-card">
+            <div class="splash-banner">
+                <img src="school_splash.jpg" alt="High School Corridor" class="splash-img">
+                <div class="banner-overlay"></div>
+                <h1 class="game-title">ESCAPIST HIGH</h1>
+                <p class="game-subtitle">Sakura Chronicle • 2年B組</p>
+            </div>
+            
+            <div class="start-body">
+                <p class="intro-text">
+                    Bienvenido a la academia Sakura. Eres un estudiante de segundo año. Al igual que en <em>The Escapists</em>, tu objetivo es sobrevivir a la estricta rutina escolar, subir tus estadísticas, interactuar con compañeros y profesores, realizar contrabando, abrir casilleros y aprobar el examen final del viernes... ¡O saltarte las normas sin que te atrape el comité de disciplina!
+                </p>
+
+                <div class="form-group">
+                    <label for="player-name">Nombre del Estudiante:</label>
+                    <input type="text" id="player-name" value="Ryu" maxlength="12" placeholder="Escribe tu nombre...">
+                </div>
+
+                <div class="club-selection">
+                    <label>Elige tu Club (Bonificación Inicial):</label>
+                    <div class="club-grid">
+                        <div class="club-option active" data-club="deportes">
+                            <span class="club-icon">⚽</span>
+                            <h3>Club de Deportes</h3>
+                            <p>+Fuerza inicial. Más vida máxima y mejor desempeño en combate.</p>
+                        </div>
+                        <div class="club-option" data-club="ciencias">
+                            <span class="club-icon">🧪</span>
+                            <h3>Club de Ciencias</h3>
+                            <p>+Inteligencia inicial. Mejor probabilidad al abrir casilleros y hackear.</p>
+                        </div>
+                        <div class="club-option" data-club="teatro">
+                            <span class="club-icon">🎭</span>
+                            <h3>Club de Teatro</h3>
+                            <p>+Carisma inicial. Mayor probabilidad de persuadir a otros y mejores precios.</p>
+                        </div>
+                        <div class="club-option" data-club="delincuente">
+                            <span class="club-icon">👊</span>
+                            <h3>Pandillero (Ninguno)</h3>
+                            <p>Comienzas con un Bate de Madera y más tolerancia al Estrés.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="start-game-btn" class="btn btn-primary btn-large">Comenzar Aventura Escolar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PANTALLA PRINCIPAL DEL JUEGO -->
+    <div id="game-screen" class="screen">
+        <header class="main-header">
+            <div class="header-logo">
+                <h2>ESCAPIST HIGH</h2>
+            </div>
+            
+            <div class="time-widget">
+                <div class="time-item date">
+                    <span class="label">📅 DÍA</span>
+                    <span id="display-day" class="value">Lunes</span>
+                </div>
+                <div class="time-item clock">
+                    <span class="label">⏰ HORA</span>
+                    <span id="display-time" class="value">08:00</span>
+                </div>
+                <div class="time-item schedule">
+                    <span class="label">🚨 PERIODO</span>
+                    <span id="display-period" class="value">Pase de Lista</span>
+                </div>
+            </div>
+            
+            <div class="location-badge">
+                <span class="loc-icon">🏫</span>
+                <span id="display-location">Salón 2-B</span>
+            </div>
+        </header>
+
+        <div class="game-container">
+            <!-- PANEL IZQUIERDO: ESTADÍSTICAS Y HORARIO -->
+            <aside class="sidebar-left">
+                <!-- PANEL DE ESTADO -->
+                <div class="card status-card">
+                    <div class="card-header">
+                        <h3>Estado del Estudiante</h3>
+                    </div>
+                    <div class="status-grid">
+                        <!-- Salud (HP) -->
+                        <div class="status-bar-container">
+                            <div class="status-label">
+                                <span>❤️ Salud</span>
+                                <span id="val-hp">100/100</span>
+                            </div>
+                            <div class="bar-bg">
+                                <div id="bar-hp" class="bar fill-red" style="width: 100%;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Energía (AP) -->
+                        <div class="status-bar-container">
+                            <div class="status-label">
+                                <span>⚡ Energía</span>
+                                <span id="val-energy">100/100</span>
+                            </div>
+                            <div class="bar-bg">
+                                <div id="bar-energy" class="bar fill-yellow" style="width: 100%;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Estrés -->
+                        <div class="status-bar-container">
+                            <div class="status-label">
+                                <span>🧠 Estrés</span>
+                                <span id="val-stress">0/100</span>
+                            </div>
+                            <div class="bar-bg">
+                                <div id="bar-stress" class="bar fill-purple" style="width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Calor / Sospecha (Heat) -->
+                        <div class="status-bar-container">
+                            <div class="status-label">
+                                <span>🔥 Calor (Sospecha)</span>
+                                <span id="val-heat">0/100</span>
+                            </div>
+                            <div class="bar-bg">
+                                <div id="bar-heat" class="bar fill-orange" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="wallet-container">
+                        <span class="wallet-icon">💴 Dinero:</span>
+                        <span id="val-money" class="money-text">¥1,500</span>
+                    </div>
+                </div>
+
+                <!-- PANEL DE ATRIBUTOS (The Escapists) -->
+                <div class="card stats-card">
+                    <div class="card-header">
+                        <h3>Estadísticas Físicas y Mentales</h3>
+                    </div>
+                    <div class="stats-list">
+                        <!-- Fuerza -->
+                        <div class="stat-row">
+                            <div class="stat-info">
+                                <span class="stat-name">💪 Fuerza</span>
+                                <span id="val-strength-lvl" class="stat-lvl">Nivel 1</span>
+                            </div>
+                            <div class="bar-bg mini">
+                                <div id="bar-strength-xp" class="bar fill-strength" style="width: 0%;"></div>
+                            </div>
+                            <span class="stat-sub" id="val-strength-num">10/100</span>
+                        </div>
+
+                        <!-- Inteligencia -->
+                        <div class="stat-row">
+                            <div class="stat-info">
+                                <span class="stat-name">🧪 Inteligencia</span>
+                                <span id="val-intellect-lvl" class="stat-lvl">Nivel 1</span>
+                            </div>
+                            <div class="bar-bg mini">
+                                <div id="bar-intellect-xp" class="bar fill-intellect" style="width: 0%;"></div>
+                            </div>
+                            <span class="stat-sub" id="val-intellect-num">10/100</span>
+                        </div>
+
+                        <!-- Carisma -->
+                        <div class="stat-row">
+                            <div class="stat-info">
+                                <span class="stat-name">🎭 Carisma</span>
+                                <span id="val-charisma-lvl" class="stat-lvl">Nivel 1</span>
+                            </div>
+                            <div class="bar-bg mini">
+                                <div id="bar-charisma-xp" class="bar fill-charisma" style="width: 0%;"></div>
+                            </div>
+                            <span class="stat-sub" id="val-charisma-num">10/100</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PANEL DE HORARIO DIARIO -->
+                <div class="card schedule-card">
+                    <div class="card-header">
+                        <h3>Horario y Rutina Obligatoria</h3>
+                    </div>
+                    <div class="schedule-list" id="schedule-list">
+                        <!-- Generado por JS -->
+                    </div>
+                </div>
+            </aside>
+
+            <!-- PANEL DERECHO / CENTRAL: ACCIONES, TABS Y COMBATE -->
+            <main class="main-content">
+                <!-- PESTAÑAS DE NAVEGACIÓN -->
+                <nav class="tabs-nav">
+                    <button class="tab-btn active" data-tab="tab-location">📍 Ubicación</button>
+                    <button class="tab-btn" data-tab="tab-npcs">👥 Estudiantes / Profesores</button>
+                    <button class="tab-btn" data-tab="tab-inventory">🎒 Inventario & Crafteo</button>
+                    <button class="tab-btn" data-tab="tab-quests">📜 Misiones <span id="quest-count" class="badge">0</span></button>
+                </nav>
+
+                <!-- TAB DE UBICACIÓN -->
+                <div id="tab-location" class="tab-panel active">
+                    <div class="location-details">
+                        <div class="location-banner">
+                            <h2 id="location-name">Salón de Clases 2-B</h2>
+                            <p id="location-desc">El centro de las lecciones diarias. Cumple el horario aquí para evitar problemas con Yamada-sensei, o registra los pupitres de tus compañeros cuando nadie esté mirando.</p>
+                        </div>
+
+                        <div class="location-actions">
+                            <h3>Acciones de la Zona</h3>
+                            <div class="action-grid" id="location-action-buttons">
+                                <!-- Botones de acción contextuales por JS -->
+                            </div>
+                        </div>
+
+                        <div class="travel-section">
+                            <h3>Moverse a otra Zona (Toma 10 min, +2 de Estrés)</h3>
+                            <div class="travel-grid" id="travel-buttons">
+                                <!-- Botones de viaje generados por JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB DE NPCs -->
+                <div id="tab-npcs" class="tab-panel">
+                    <div class="npcs-intro">
+                        <h3>Personas en la Zona</h3>
+                        <p>Interactúa con ellos para ganar reputación, comerciar contrabando, iniciar peleas o pedir misiones. Su opinión sobre ti determina cómo te tratarán.</p>
+                    </div>
+                    <div class="npc-grid" id="npc-list">
+                        <!-- Tarjetas de NPC por JS -->
+                    </div>
+                </div>
+
+                <!-- TAB DE INVENTARIO Y CRAFTEO -->
+                <div id="tab-inventory" class="tab-panel">
+                    <div class="inventory-crafteo-split">
+                        <!-- INVENTARIO -->
+                        <div class="inventory-section">
+                            <h3>Bolsillos (<span id="inv-slots-used">0</span>/12)</h3>
+                            <div class="inventory-grid" id="inventory-grid">
+                                <!-- 12 casillas generadas por JS -->
+                            </div>
+                            <div id="item-details-box" class="item-details-box hidden">
+                                <h4 id="detail-item-name">Nombre</h4>
+                                <p id="detail-item-desc">Descripción del objeto...</p>
+                                <div class="item-actions">
+                                    <button id="btn-use-item" class="btn btn-small btn-primary">Usar</button>
+                                    <button id="btn-discard-item" class="btn btn-small btn-danger">Tirar</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CRAFTEO -->
+                        <div class="crafting-section">
+                            <h3>Mesa de Crafteo</h3>
+                            <p class="crafting-intro">Combina materiales contrabandeados o encontrados en los casilleros para crear herramientas útiles, armas improvisadas u objetos valiosos.</p>
+                            <div class="crafting-list" id="crafting-list">
+                                <!-- Recetas por JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB DE MISIONES -->
+                <div id="tab-quests" class="tab-panel">
+                    <div class="quests-container">
+                        <h3>Misiones Activas</h3>
+                        <div class="quests-list" id="quests-list">
+                            <!-- Lista de misiones activas -->
+                            <p class="no-quests">No tienes misiones activas. ¡Habla con los estudiantes en los pasillos o el patio para conseguir tareas y ganar yenes!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CONSOLA / LOG DE SUCESOS -->
+                <div class="console-log-card">
+                    <div class="console-header">
+                        <h4>Registro del Día</h4>
+                        <button id="clear-log" class="btn-clear">Limpiar</button>
+                    </div>
+                    <div class="console-body" id="game-log">
+                        <div class="log-entry system">Comienza la semana escolar. Recuerda asistir a los eventos obligatorios para mantener tu nivel de Calor bajo. ¡El viernes hay examen final de semestre!</div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- MODAL DE COMBATE (The Escapists Fight) -->
+    <div id="combat-overlay" class="modal-overlay">
+        <div class="combat-card">
+            <h2 class="combat-title">💥 ¡PELEA EN EL INSTITUTO! 💥</h2>
+            
+            <div class="combatants-container">
+                <!-- Jugador -->
+                <div class="combatant player">
+                    <div class="combatant-avatar">🎒</div>
+                    <h3 id="combat-player-name">Tú (Ryu)</h3>
+                    <div class="bar-bg">
+                        <div id="combat-player-hp-bar" class="bar fill-red" style="width: 100%;"></div>
+                    </div>
+                    <span id="combat-player-hp-val">100/100 HP</span>
+                    <span id="combat-player-weapon" class="weapon-tag">Arma: Puños</span>
+                </div>
+
+                <div class="combat-vs">VS</div>
+
+                <!-- NPC Enemigo -->
+                <div class="combatant enemy">
+                    <div id="combat-enemy-avatar" class="combatant-avatar">👊</div>
+                    <h3 id="combat-enemy-name">Kenji (Delincuente)</h3>
+                    <div class="bar-bg">
+                        <div id="combat-enemy-hp-bar" class="bar fill-red" style="width: 100%;"></div>
+                    </div>
+                    <span id="combat-enemy-hp-val">120/120 HP</span>
+                    <span id="combat-enemy-status" class="weapon-tag">Listo para pelear</span>
+                </div>
+            </div>
+
+            <div class="combat-actions">
+                <button id="combat-btn-strike" class="btn btn-danger">👊 Golpear</button>
+                <button id="combat-btn-taunt" class="btn btn-warning">🗣️ Provocar (Reduce Energía Enemiga)</button>
+                <button id="combat-btn-heal" class="btn btn-success">💊 Usar Bebida/Bento</button>
+                <button id="combat-btn-flee" class="btn btn-neutral">🏃 Intentar Escapar</button>
+            </div>
+
+            <div class="combat-log" id="combat-log">
+                <p>La pelea ha comenzado. ¡Dale una paliza antes de que él te la dé a ti!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE DIÁLOGO / COMERCIO / OPINIÓN -->
+    <div id="dialog-overlay" class="modal-overlay">
+        <div class="dialog-card">
+            <div class="dialog-header">
+                <span id="dialog-npc-avatar" class="dialog-avatar">👤</span>
+                <div>
+                    <h3 id="dialog-npc-name">Yuki Sato</h3>
+                    <span id="dialog-npc-role" class="dialog-role">Presidenta de la Clase</span>
+                </div>
+                <button id="close-dialog" class="dialog-close-btn">&times;</button>
+            </div>
+            
+            <div class="dialog-body">
+                <p id="dialog-text">"¿Necesitas algo, Ryu? Intenta no causar problemas hoy, Yamada-sensei está de mal humor."</p>
+                
+                <!-- Sección para comercio (si se hace click en comerciar) -->
+                <div id="trade-interface" class="trade-interface hidden">
+                    <h4>Artículos para Comerciar</h4>
+                    <div class="trade-split">
+                        <div class="trade-shop">
+                            <h5>Inventario de <span id="shop-npc-name">NPC</span>:</h5>
+                            <div class="shop-grid" id="npc-shop-grid">
+                                <!-- Items de NPC -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dialog-actions" id="dialog-actions-container">
+                <!-- Botones contextuales del diálogo -->
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE EVENTO DE EXAMEN / FIN DE DÍA -->
+    <div id="event-overlay" class="modal-overlay">
+        <div class="event-card">
+            <div class="event-icon" id="event-modal-icon">📝</div>
+            <h2 id="event-modal-title">¡Día de Exámenes Finales!</h2>
+            <div class="event-body">
+                <p id="event-modal-desc">El salón está en completo silencio. Tienes el papel del examen frente a ti. ¿Confiarás en tus horas de estudio o intentarás usar el Apunte con Trampa que tienes en el bolsillo?</p>
+                <div class="event-options" id="event-modal-options">
+                    <!-- Opciones de decisión -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PANTALLA DE RESULTADOS (Game Over / Éxito) -->
+    <div id="results-screen" class="screen">
+        <div class="results-card">
+            <h1 id="results-title">FIN DEL SEMESTRE</h1>
+            <p id="results-desc">El comité de disciplina te ha atrapado in fraganti con contrabando en tu casillero.</p>
+            
+            <div class="results-stats">
+                <div class="res-stat-row">
+                    <span>Fuerza Final:</span>
+                    <strong id="res-strength">Nivel 1</strong>
+                </div>
+                <div class="res-stat-row">
+                    <span>Inteligencia Final:</span>
+                    <strong id="res-intellect">Nivel 1</strong>
+                </div>
+                <div class="res-stat-row">
+                    <span>Carisma Final:</span>
+                    <strong id="res-charisma">Nivel 1</strong>
+                </div>
+                <div class="res-stat-row">
+                    <span>Yenes ganados:</span>
+                    <strong id="res-money">¥0</strong>
+                </div>
+                <div class="res-stat-row">
+                    <span>Misiones completadas:</span>
+                    <strong id="res-quests">0</strong>
+                </div>
+            </div>
+
+            <button id="restart-game-btn" class="btn btn-primary">Volver a Intentar</button>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
