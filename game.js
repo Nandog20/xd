@@ -220,6 +220,85 @@ const WEEKEND_SCHEDULE = [
     { start: 22, end: 24, period: 'Toque de queda', location: 'home', desc: '¡Hora de dormir!' }
 ];
 
+// --- JUEGO 2D ENGINE (ESTADO Y CONFIGURACIÓN) ---
+let canvas = null;
+let ctx = null;
+let animationFrameId = null;
+
+const keys = {
+    w: false, a: false, s: false, d: false,
+    arrowup: false, arrowdown: false, arrowleft: false, arrowright: false
+};
+
+const player2d = {
+    x: 120,
+    y: 80,
+    radius: 14,
+    speed: 3
+};
+
+const walls = [
+    // Outer Borders
+    { x: 0, y: 0, w: 800, h: 10 },
+    { x: 0, y: 490, w: 800, h: 10 },
+    { x: 0, y: 0, w: 10, h: 500 },
+    { x: 790, y: 0, w: 10, h: 500 },
+    
+    // Internal Room Dividers
+    // Classroom (Top-Left) and Library (Top-Right) Dividers
+    { x: 240, y: 0, w: 10, h: 70 },
+    { x: 240, y: 130, w: 10, h: 50 },
+    { x: 550, y: 0, w: 10, h: 70 },
+    { x: 550, y: 130, w: 10, h: 50 },
+    
+    // Gym (Bottom-Left) and Kombini (Bottom-Right) Dividers
+    { x: 240, y: 340, w: 10, h: 70 },
+    { x: 240, y: 450, w: 10, h: 50 },
+    { x: 550, y: 340, w: 10, h: 70 },
+    { x: 550, y: 450, w: 10, h: 50 },
+    
+    // Horizontal corridor walls
+    { x: 10, y: 180, w: 230, h: 10 },
+    { x: 560, y: 180, w: 230, h: 10 },
+    { x: 10, y: 340, w: 230, h: 10 },
+    { x: 560, y: 340, w: 230, h: 10 },
+    
+    // Middle dividers (Rooftop and Home)
+    { x: 240, y: 180, w: 80, h: 10 },
+    { x: 480, y: 180, w: 80, h: 10 },
+    { x: 240, y: 340, w: 80, h: 10 },
+    { x: 480, y: 340, w: 80, h: 10 }
+];
+
+const interactives = [
+    // Classroom
+    { id: 'loot_desks', room: 'classroom', x: 60, y: 80, emoji: '🔍', title: 'Saquear Pupitres', desc: 'Registra los pupitres de la clase.', cost: '⚡ 15', action: () => performLocationAction('loot_desks', 15, 10) },
+    { id: 'attend_class', room: 'classroom', x: 180, y: 60, emoji: '👨‍🏫', title: 'Asistir a Clase', desc: 'Atiende al pase de lista y clase.', cost: '⚡ 10', action: () => performLocationAction('attend_class', 10, 60) },
+    
+    // Library
+    { id: 'study_library', room: 'library', x: 740, y: 70, emoji: '📖', title: 'Estudiar con Concentración', desc: 'Estudia intensamente en la biblioteca.', cost: '⚡ 15', action: () => performLocationAction('study_library', 15, 30) },
+    { id: 'loot_library', room: 'library', x: 600, y: 140, emoji: '🔒', title: 'Casillero Confidencial', desc: 'Requiere una ganzúa.', cost: '⚡ 20', action: () => performLocationAction('loot_library', 20, 10) },
+    
+    // Gym
+    { id: 'train_gym', room: 'gym', x: 180, y: 440, emoji: '🏋️', title: 'Entrenar Fuerza', desc: 'Levanta pesas.', cost: '⚡ 20', action: () => performLocationAction('train_gym', 20, 30) },
+    { id: 'loot_gym', room: 'gym', x: 50, y: 380, emoji: '🧹', title: 'Saquear Taquillas', desc: 'Busca en los vestuarios.', cost: '⚡ 15', action: () => performLocationAction('loot_gym', 15, 10) },
+    
+    // Rooftop
+    { id: 'rest_rooftop', room: 'rooftop', x: 390, y: 70, emoji: '☁️', title: 'Descansar en Azotea', desc: 'Relájate y recupera energía.', cost: 'Libre', action: () => performLocationAction('rest_rooftop', 0, 30) },
+    
+    // Courtyard
+    { id: 'socialize_courtyard', room: 'courtyard', x: 380, y: 260, emoji: '🌸', title: 'Socializar', desc: 'Habla con otros alumnos.', cost: '⚡ 15', action: () => performLocationAction('socialize_courtyard', 15, 30) },
+    { id: 'buy_vending', room: 'courtyard', x: 180, y: 220, emoji: '🥤', title: 'Máquina Expendedora', desc: 'Compra soda vitamínica.', cost: '¥150', action: () => performLocationAction('buy_vending', 0, 5) },
+    
+    // Kombini
+    { id: 'work_kombini', room: 'kombini', x: 740, y: 440, emoji: '💼', title: 'Trabajar', desc: 'Trabajo a tiempo parcial.', cost: '⚡ 25', action: () => performLocationAction('work_kombini', 25, 60) },
+    { id: 'shop_kombini', room: 'kombini', x: 620, y: 380, emoji: '🛒', title: 'Comprar Suministros', desc: 'Habla con el tendero.', cost: 'Gratis', action: () => performLocationAction('shop_kombini', 0, 5) },
+    
+    // Home
+    { id: 'sleep_bed', room: 'home', x: 290, y: 440, emoji: '🛏️', title: 'Dormir (Siguiente Día)', desc: 'Restaura tus estadísticas.', cost: 'Libre', action: () => performLocationAction('sleep_bed', 0, 0) },
+    { id: 'rest_home', room: 'home', x: 440, y: 440, emoji: '🏠', title: 'Descansar en Casa', desc: 'Estudia o relájate.', cost: 'Libre', action: () => performLocationAction('rest_home', 0, 40) }
+];
+
 // STATE DEL JUEGO
 const state = {
     // Stats de personaje
@@ -342,8 +421,8 @@ function setupEventListeners() {
 
     // Restart game button
     document.getElementById('restart-game-btn').addEventListener('click', () => {
-        document.getElementById('results-screen').classList.remove('active');
-        document.getElementById('start-screen').classList.add('active');
+        document.getElementById('results-screen').style.display = 'none';
+        document.getElementById('start-screen').style.display = 'flex';
         playSound('click');
     });
 
@@ -352,6 +431,29 @@ function setupEventListeners() {
     document.getElementById('combat-btn-taunt').addEventListener('click', () => combatTurn('taunt'));
     document.getElementById('combat-btn-heal').addEventListener('click', () => combatTurn('heal'));
     document.getElementById('combat-btn-flee').addEventListener('click', () => combatTurn('flee'));
+
+    // Keyboard inputs for 2D movement
+    window.addEventListener('keydown', (e) => {
+        const key = e.key.toLowerCase();
+        if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
+            if (isLocationTabActive() && !isModalOpen()) {
+                keys[key] = true;
+                e.preventDefault();
+            }
+        }
+        if (key === 'e') {
+            if (isLocationTabActive() && !isModalOpen()) {
+                triggerEInteraction();
+            }
+        }
+    });
+
+    window.addEventListener('keyup', (e) => {
+        const key = e.key.toLowerCase();
+        if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
+            keys[key] = false;
+        }
+    });
 }
 
 function switchTab(tabId, tabButtonEl) {
@@ -372,6 +474,7 @@ function switchTab(tabId, tabButtonEl) {
         renderQuests();
     } else if (tabId === 'tab-location') {
         renderLocationDetails();
+        initCanvas();
     }
 }
 
@@ -451,8 +554,8 @@ function startGame() {
     ];
 
     // Transition Screens
-    document.getElementById('start-screen').classList.remove('active');
-    document.getElementById('game-screen').classList.add('active');
+    document.getElementById('start-screen').style.display = 'none';
+    document.getElementById('game-screen').style.display = 'block';
 
     // Reset opinion values
     state.npcs.yuki.opinion = 10;
@@ -467,9 +570,14 @@ function startGame() {
     logMessage(`¡Aventura escolar iniciada! Bienvenido/a, ${state.player.name}. Club actual: ${selectedClubEl.querySelector('h3').textContent}.`, 'success');
     logMessage('🔊 Suena el timbre matutino. Yamada-sensei está entrando para pasar de lista en el Salón 2-B.', 'bell');
 
+    // Reset player 2D position to classroom
+    player2d.x = 120;
+    player2d.y = 80;
+
     updateHUD();
     renderSchedule();
     renderLocationDetails();
+    initCanvas();
 }
 
 // --- ACTUALIZACIONES HUD ---
@@ -678,156 +786,78 @@ function forceSleep() {
 function renderLocationDetails() {
     const loc = LOCATIONS[state.currentLocation];
     document.getElementById('location-name').textContent = loc.name;
-    document.getElementById('location-desc').textContent = loc.desc;
+    
+    let roomDesc = loc.desc;
+    const currentPeriod = getSchedulePeriod();
+    if (currentPeriod.location !== 'any' && currentPeriod.location !== state.currentLocation) {
+        let reqLoc = Array.isArray(currentPeriod.location) ? currentPeriod.location[0] : currentPeriod.location;
+        roomDesc += ` <span style="color: var(--neon-orange); font-weight: 600;">(Debes estar en ${LOCATIONS[reqLoc].name} para el periodo "${currentPeriod.period}")</span>`;
+    }
+    document.getElementById('location-desc').innerHTML = roomDesc;
 
-    // Action buttons
     const actionContainer = document.getElementById('location-action-buttons');
     actionContainer.innerHTML = '';
 
-    loc.actions.forEach(actId => {
-        const btn = document.createElement('div');
-        btn.className = 'act-card';
-        
-        let title = '';
-        let desc = '';
-        let costText = '';
-        let energyCost = 0;
-        
-        switch (actId) {
-            case 'attend_class':
-                title = '📝 Asistir a Clase / Lista';
-                desc = 'Cumple con el deber escolar. Reduce Calor en 10, consume 10 de Energía y otorga +2 de Inteligencia XP.';
-                costText = '⚡ 10 | 🕐 60m';
-                energyCost = 10;
-                btn.addEventListener('click', () => performLocationAction('attend_class', energyCost, 60));
-                break;
-            case 'loot_desks':
-                title = '🔍 Saquear Pupitres y Casilleros';
-                desc = 'Busca contrabando en la clase. Consume 15 de Energía y sube +5 de Calor (Sospecha). ¡Puede dar materiales raros!';
-                costText = '⚡ 15 | 🕐 10m';
-                energyCost = 15;
-                btn.addEventListener('click', () => performLocationAction('loot_desks', energyCost, 10));
-                break;
-            case 'study_library':
-                title = '📖 Estudiar con Concentración';
-                desc = 'Lee libros académicos. Aumenta Inteligencia (+8 XP) a cambio de 15 de Energía y +10 de Estrés.';
-                costText = '⚡ 15 | 🕐 30m';
-                energyCost = 15;
-                btn.addEventListener('click', () => performLocationAction('study_library', energyCost, 30));
-                break;
-            case 'loot_library':
-                title = '🔒 Forzar Casillero de Profesores';
-                desc = 'Busca contrabandos premium o copias de examen. Requiere una Ganzúa. (+15 Calor)';
-                costText = '⚡ 20 | 🕐 10m';
-                energyCost = 20;
-                btn.addEventListener('click', () => performLocationAction('loot_library', energyCost, 10));
-                break;
-            case 'train_gym':
-                title = '🏃 Rutina de Ejercicio Físico';
-                desc = 'Usa pesas y corre en la cinta. Sube Fuerza (+8 XP). Consume 20 de Energía y añade +10 de Estrés.';
-                costText = '⚡ 20 | 🕐 30m';
-                energyCost = 20;
-                btn.addEventListener('click', () => performLocationAction('train_gym', energyCost, 30));
-                break;
-            case 'loot_gym':
-                title = '🧹 Saquear Casilleros del Gimnasio';
-                desc = 'Revisa las taquillas deportivas de tus compañeros. (+8 Calor)';
-                costText = '⚡ 15 | 🕐 10m';
-                energyCost = 15;
-                btn.addEventListener('click', () => performLocationAction('loot_gym', energyCost, 10));
-                break;
-            case 'socialize_courtyard':
-                title = '🗣️ Socializar y Cotillear';
-                desc = 'Habla con otros alumnos y lee revistas de moda. Sube Carisma (+8 XP) a cambio de 15 de Energía.';
-                costText = '⚡ 15 | 🕐 30m';
-                energyCost = 15;
-                btn.addEventListener('click', () => performLocationAction('socialize_courtyard', energyCost, 30));
-                break;
-            case 'buy_vending':
-                title = '🥤 Comprar en Máquina Expendedora';
-                desc = 'Adquiere una Soda de Vitaminas fresca por ¥150 para recuperar energía rápidamente.';
-                costText = '¥150 | 🕐 5m';
-                btn.addEventListener('click', () => performLocationAction('buy_vending', 0, 5));
-                break;
-            case 'rest_rooftop':
-                title = '🚬 Descansar a Escondidas';
-                desc = 'Relájate contemplando las nubes. Reduce 20 de Estrés y restaura 15 de Energía. 15% de probabilidad de que te pille Yamada-sensei.';
-                costText = '⚡ 0 | 🕐 30m';
-                btn.addEventListener('click', () => performLocationAction('rest_rooftop', 0, 30));
-                break;
-            case 'secret_deal':
-                title = '🤝 Hacer Tratos con Delincuentes';
-                desc = 'Los pandilleros se reúnen aquí. Aumenta Carisma y permite comerciar contrabandos especializados.';
-                costText = '⚡ 10 | 🕐 15m';
-                energyCost = 10;
-                btn.addEventListener('click', () => performLocationAction('secret_deal', energyCost, 15));
-                break;
-            case 'work_kombini':
-                title = '💴 Turno de Trabajo Parcial';
-                desc = 'Trabaja como cajero en el kombini. Gana ¥1,500 (+¥100 por cada nivel de Carisma) a costa de 25 de Energía y +15 de Estrés.';
-                costText = '⚡ 25 | 🕐 60m';
-                energyCost = 25;
-                btn.addEventListener('click', () => performLocationAction('work_kombini', energyCost, 60));
-                break;
-            case 'shop_kombini':
-                title = '🛒 Comprar Víveres y Materiales';
-                desc = 'Habla con el tendero para comprar suministros como Arroz, Salmón o Café.';
-                costText = 'Gratis | 🕐 5m';
-                btn.addEventListener('click', () => performLocationAction('shop_kombini', 0, 5));
-                break;
-            case 'sleep_bed':
-                title = '💤 Dormir (Terminar Día)';
-                desc = 'Termina tus actividades del día. Restaura salud, energía, cura el estrés y reduce tu nivel de Calor sospechoso.';
-                costText = 'Dormir hasta Mañana';
-                btn.addEventListener('click', () => performLocationAction('sleep_bed', 0, 0));
-                break;
-            case 'rest_home':
-                title = '🏠 Estudiar o Descansar en Casa';
-                desc = 'Repasa con apuntes o descansa seguro. Restaura 20 de Energía y reduce 10 de Estrés.';
-                costText = '⚡ 0 | 🕐 40m';
-                btn.addEventListener('click', () => performLocationAction('rest_home', 0, 40));
-                break;
+    const closest = findClosestEntity();
+    if (closest && closest.dist < 40) {
+        if (closest.type === 'npc') {
+            const npc = closest.npc;
+            const card = document.createElement('div');
+            card.className = 'act-card';
+            card.style.gridColumn = 'span 3';
+            card.style.borderColor = 'var(--neon-purple)';
+            card.innerHTML = `
+                <div class="act-header">
+                    <span class="act-title">${npc.avatar} ${npc.name} (${npc.role})</span>
+                    <span class="act-cost">Opinión: ${npc.opinion > 0 ? '+' : ''}${npc.opinion}</span>
+                </div>
+                <p class="act-desc">Estás junto a ${npc.name}. Presiona <strong>[E]</strong> para interactuar o selecciona una opción:</p>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;">
+                    <button class="btn btn-neutral btn-small" onclick="interactNPC('${closest.id}', 'talk')">🗣️ Hablar</button>
+                    <button class="btn btn-neutral btn-small" onclick="interactNPC('${closest.id}', 'flatter')">✨ Halagar</button>
+                    <button class="btn btn-neutral btn-small" onclick="interactNPC('${closest.id}', 'gift')">🎁 Regalar</button>
+                    <button class="btn btn-neutral btn-small" onclick="interactNPC('${closest.id}', 'trade')">🤝 Comerciar</button>
+                    <button class="btn btn-danger btn-small" onclick="interactNPC('${closest.id}', 'fight')">👊 Pelear</button>
+                    <button class="btn btn-warning btn-small" onclick="interactNPC('${closest.id}', 'quest')">📜 Misión</button>
+                </div>
+            `;
+            actionContainer.appendChild(card);
+        } else if (closest.type === 'interactive') {
+            const spot = closest.spot;
+            const btn = document.createElement('div');
+            btn.className = 'act-card';
+            btn.style.gridColumn = 'span 3';
+            btn.style.borderColor = 'var(--neon-cyan)';
+            btn.innerHTML = `
+                <div class="act-header">
+                    <span class="act-title">${spot.emoji} ${spot.title}</span>
+                    <span class="act-cost">${spot.cost}</span>
+                </div>
+                <p class="act-desc">${spot.desc} (Presiona <strong>[E]</strong> o haz clic para realizar esta acción)</p>
+            `;
+            
+            // Check energy cost to style if disabled
+            let energyCost = 0;
+            if (spot.id === 'loot_desks') energyCost = 15;
+            else if (spot.id === 'attend_class') energyCost = 10;
+            else if (spot.id === 'study_library') energyCost = 15;
+            else if (spot.id === 'loot_library') energyCost = 20;
+            else if (spot.id === 'train_gym') energyCost = 20;
+            else if (spot.id === 'loot_gym') energyCost = 15;
+            else if (spot.id === 'socialize_courtyard') energyCost = 15;
+            else if (spot.id === 'work_kombini') energyCost = 25;
+            
+            if (state.player.energy < energyCost) {
+                btn.className += ' disabled';
+            } else {
+                btn.addEventListener('click', spot.action);
+            }
+            
+            actionContainer.appendChild(btn);
         }
-
-        btn.innerHTML = `
-            <div class="act-header">
-                <span class="act-title">${title}</span>
-                <span class="act-cost">${costText}</span>
-            </div>
-            <p class="act-desc">${desc}</p>
-        `;
-        
-        // Disabled styling if not enough energy
-        if (state.player.energy < energyCost) {
-            btn.className += ' disabled';
-        }
-
-        actionContainer.appendChild(btn);
-    });
-
-    // Travel / Movement grid
-    const travelContainer = document.getElementById('travel-buttons');
-    travelContainer.innerHTML = '';
-
-    Object.keys(LOCATIONS).forEach(locId => {
-        const travelBtn = document.createElement('button');
-        travelBtn.className = 'travel-btn';
-        if (locId === state.currentLocation) {
-            travelBtn.className += ' current';
-            travelBtn.disabled = true;
-        }
-
-        travelBtn.innerHTML = `
-            <span>${LOCATIONS[locId].icon}</span>
-            <span>${LOCATIONS[locId].name.split(' ')[0]}</span>
-        `;
-        
-        if (locId !== state.currentLocation) {
-            travelBtn.addEventListener('click', () => travel(locId));
-        }
-
-        travelContainer.appendChild(travelBtn);
-    });
+    } else {
+        actionContainer.innerHTML = `<p class="no-actions-prompt">🚶 Camina cerca de un objeto o persona en el mapa 2D.</p>`;
+    }
 }
 
 function performLocationAction(actionType, energyCost, timeCost) {
@@ -2195,7 +2225,7 @@ function triggerEndscreen(success) {
     document.getElementById('res-quests').textContent = state.completedQuestsCount;
 
     // Show Overlay
-    scr.classList.add('active');
+    scr.style.display = 'flex';
 }
 
 function triggerGameOver(reason) {
@@ -2215,5 +2245,305 @@ function triggerGameOver(reason) {
     document.getElementById('res-quests').textContent = state.completedQuestsCount;
 
     // Show Overlay
-    scr.classList.add('active');
+    scr.style.display = 'flex';
 }
+
+// --- JUEGO 2D ENGINE (LOGICA DE CANVAS, COLISIONES Y BUCLE DE JUEGO) ---
+function initCanvas() {
+    canvas = document.getElementById('game-canvas');
+    if (!canvas) return;
+    ctx = canvas.getContext('2d');
+    
+    // Start game loop
+    if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    animationFrameId = requestAnimationFrame(gameLoop2d);
+}
+
+function gameLoop2d() {
+    if (isLocationTabActive() && !isModalOpen()) {
+        updatePlayerMovement();
+    }
+    drawGame2d();
+    animationFrameId = requestAnimationFrame(gameLoop2d);
+}
+
+function updatePlayerMovement() {
+    let dx = 0;
+    let dy = 0;
+    
+    if (keys.w || keys.arrowup) dy -= player2d.speed;
+    if (keys.s || keys.arrowdown) dy += player2d.speed;
+    if (keys.a || keys.arrowleft) dx -= player2d.speed;
+    if (keys.d || keys.arrowright) dx += player2d.speed;
+    
+    // Normalise speed for diagonal movement
+    if (dx !== 0 && dy !== 0) {
+        dx *= 0.7071;
+        dy *= 0.7071;
+    }
+    
+    // Next hypothetical coords
+    let nextX = player2d.x + dx;
+    let nextY = player2d.y + dy;
+    
+    // Map Boundaries Collision
+    if (nextX < player2d.radius + 10) nextX = player2d.radius + 10;
+    if (nextX > canvas.width - player2d.radius - 10) nextX = canvas.width - player2d.radius - 10;
+    if (nextY < player2d.radius + 10) nextY = player2d.radius + 10;
+    if (nextY > canvas.height - player2d.radius - 10) nextY = canvas.height - player2d.radius - 10;
+    
+    // Wall Collisions
+    if (!isCollidingWithWalls(nextX, player2d.y, player2d.radius)) {
+        player2d.x = nextX;
+    }
+    if (!isCollidingWithWalls(player2d.x, nextY, player2d.radius)) {
+        player2d.y = nextY;
+    }
+    
+    // Update location state based on coordinates
+    const newLoc = getRoomFromCoords(player2d.x, player2d.y);
+    if (newLoc !== state.currentLocation) {
+        state.currentLocation = newLoc;
+        logMessage(`Has entrado a: ${LOCATIONS[newLoc].name}.`, 'system');
+        advanceTime(2); // Walking takes a small amount of time
+        updateHUD();
+        renderLocationDetails();
+    }
+}
+
+function isCollidingWithWalls(x, y, radius) {
+    for (let wall of walls) {
+        let closestX = Math.max(wall.x, Math.min(x, wall.x + wall.w));
+        let closestY = Math.max(wall.y, Math.min(y, wall.y + wall.h));
+        let distanceX = x - closestX;
+        let distanceY = y - closestY;
+        let distanceSquared = (distanceX * distanceX) + (distanceY * distanceY);
+        if (distanceSquared < radius * radius) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function getRoomFromCoords(x, y) {
+    if (x < 240 && y < 180) return 'classroom';
+    if (x > 550 && y < 180) return 'library';
+    if (x >= 240 && x <= 550 && y < 180) return 'rooftop';
+    if (y >= 180 && y <= 340) return 'courtyard';
+    if (x < 240 && y > 340) return 'gym';
+    if (x > 550 && y > 340) return 'kombini';
+    if (x >= 240 && x <= 550 && y > 340) return 'home';
+    return 'courtyard';
+}
+
+function getNpcCoords(npcId) {
+    switch (npcId) {
+        case 'yuki': return { x: 100, y: 130 };
+        case 'yamada': return { x: 170, y: 70 };
+        case 'haruto': return { x: 680, y: 80 };
+        case 'aiko': return { x: 420, y: 260 };
+        case 'kenji': return { x: 90, y: 430 };
+        default: return null;
+    }
+}
+
+function findClosestEntity() {
+    let closestEntity = null;
+    let minDistance = Infinity;
+    
+    // Check interactive spots
+    interactives.forEach(spot => {
+        let dx = player2d.x - spot.x;
+        let dy = player2d.y - spot.y;
+        let dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < minDistance) {
+            minDistance = dist;
+            closestEntity = { type: 'interactive', spot: spot, dist: dist };
+        }
+    });
+    
+    // Check NPCs
+    Object.keys(state.npcs).forEach(id => {
+        const npc = state.npcs[id];
+        let npcCoords = getNpcCoords(id);
+        if (npcCoords) {
+            let dx = player2d.x - npcCoords.x;
+            let dy = player2d.y - npcCoords.y;
+            let dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < minDistance) {
+                minDistance = dist;
+                closestEntity = { type: 'npc', id: id, npc: npc, dist: dist };
+            }
+        }
+    });
+    
+    return closestEntity;
+}
+
+function triggerEInteraction() {
+    const closest = findClosestEntity();
+    if (closest && closest.dist < 40) {
+        if (closest.type === 'npc') {
+            interactNPC(closest.id, 'talk');
+        } else if (closest.type === 'interactive') {
+            closest.spot.action();
+        }
+    }
+}
+
+function drawGame2d() {
+    if (!ctx) return;
+    
+    // Clear
+    ctx.fillStyle = '#09080e';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // 1. Draw Rooms floor background
+    // Classroom
+    ctx.fillStyle = 'rgba(28, 24, 36, 0.65)';
+    ctx.fillRect(10, 10, 230, 170);
+    // Library
+    ctx.fillStyle = 'rgba(20, 34, 31, 0.65)';
+    ctx.fillRect(560, 10, 230, 170);
+    // Rooftop
+    ctx.fillStyle = 'rgba(43, 29, 40, 0.65)';
+    ctx.fillRect(250, 10, 300, 170);
+    // Gym
+    ctx.fillStyle = 'rgba(37, 28, 28, 0.65)';
+    ctx.fillRect(10, 350, 230, 140);
+    // Kombini
+    ctx.fillStyle = 'rgba(26, 32, 42, 0.65)';
+    ctx.fillRect(560, 350, 230, 140);
+    // Home
+    ctx.fillStyle = 'rgba(25, 25, 29, 0.65)';
+    ctx.fillRect(250, 350, 300, 140);
+    // Courtyard / Corridors
+    ctx.fillStyle = 'rgba(22, 30, 27, 0.65)';
+    ctx.fillRect(10, 190, 780, 150);
+    
+    // Draw cherry blossom tree in Courtyard
+    ctx.beginPath();
+    ctx.arc(480, 230, 35, 0, Math.PI * 2);
+    ctx.fillStyle = '#ff66a3';
+    ctx.fill();
+    ctx.closePath();
+    ctx.beginPath();
+    ctx.arc(460, 250, 25, 0, Math.PI * 2);
+    ctx.fillStyle = '#ff85b8';
+    ctx.fill();
+    ctx.closePath();
+    
+    // Draw vending machine body in Courtyard
+    ctx.fillStyle = '#00aaff';
+    ctx.fillRect(170, 205, 20, 30);
+    
+    // 2. Draw room labels
+    ctx.font = 'bold 12px Outfit';
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.fillText('AULA 2-B', 20, 30);
+    ctx.fillText('BIBLIOTECA', 570, 30);
+    ctx.fillText('AZOTEA (ROOFTOP)', 260, 30);
+    ctx.fillText('GIMNASIO', 20, 370);
+    ctx.fillText('TIENDA KOMBINI', 570, 370);
+    ctx.fillText('HOGAR', 260, 370);
+    ctx.fillText('PATIO / PASILLOS', 340, 210);
+    
+    // 3. Draw partition walls
+    ctx.fillStyle = '#222032';
+    walls.forEach(wall => {
+        ctx.fillRect(wall.x, wall.y, wall.w, wall.h);
+        ctx.strokeStyle = '#393652';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(wall.x, wall.y, wall.w, wall.h);
+    });
+    
+    // 4. Draw interactive spot items
+    ctx.font = '16px Outfit';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    interactives.forEach(spot => {
+        ctx.fillText(spot.emoji, spot.x, spot.y);
+        ctx.font = '9px Outfit';
+        ctx.fillStyle = 'rgba(255,255,255,0.45)';
+        ctx.fillText(spot.title, spot.x, spot.y + 16);
+        ctx.font = '16px Outfit'; // reset
+    });
+    
+    // 5. Draw NPCs
+    Object.keys(state.npcs).forEach(id => {
+        const npc = state.npcs[id];
+        const npcCoords = getNpcCoords(id);
+        if (npcCoords) {
+            ctx.fillStyle = '#ff3366';
+            ctx.beginPath();
+            ctx.arc(npcCoords.x, npcCoords.y, 11, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(195, 0, 255, 0.2)';
+            ctx.fill();
+            ctx.strokeStyle = 'var(--neon-purple)';
+            ctx.stroke();
+            ctx.closePath();
+            
+            // Draw emoji
+            ctx.fillText(npc.avatar, npcCoords.x, npcCoords.y);
+            
+            // Draw name tag
+            ctx.font = '9px Outfit';
+            ctx.fillStyle = '#fff';
+            ctx.fillText(npc.name.split(' ')[0], npcCoords.x, npcCoords.y - 16);
+            ctx.font = '16px Outfit';
+        }
+    });
+    
+    // 6. Draw Player
+    ctx.beginPath();
+    ctx.arc(player2d.x, player2d.y, player2d.radius, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0, 240, 255, 0.18)';
+    ctx.fill();
+    ctx.strokeStyle = 'var(--neon-cyan)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.closePath();
+    ctx.fillText('🎒', player2d.x, player2d.y);
+    
+    // Name above player
+    ctx.font = 'bold 9px Outfit';
+    ctx.fillStyle = '#00f0ff';
+    ctx.fillText(state.player.name, player2d.x, player2d.y - 18);
+    
+    // 7. Proximity highlight
+    const closest = findClosestEntity();
+    if (closest && closest.dist < 40) {
+        let targetX = closest.type === 'npc' ? getNpcCoords(closest.id).x : closest.spot.x;
+        let targetY = closest.type === 'npc' ? getNpcCoords(closest.id).y : closest.stroke ? closest.spot.y : closest.spot.y; // safe coords
+        
+        // Draw dotted connection line
+        ctx.beginPath();
+        ctx.setLineDash([3, 3]);
+        ctx.moveTo(player2d.x, player2d.y);
+        ctx.lineTo(targetX, targetY);
+        ctx.strokeStyle = '#00f0ff';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.setLineDash([]); // Reset
+        ctx.closePath();
+        
+        // Prompt indicator above player
+        ctx.fillStyle = 'var(--neon-yellow)';
+        ctx.font = 'bold 10px Outfit';
+        ctx.fillText('[E] INTERACTUAR', player2d.x, player2d.y - 28);
+    }
+}
+
+function isLocationTabActive() {
+    const tab = document.getElementById('tab-location');
+    return tab && tab.classList.contains('active');
+}
+
+function isModalOpen() {
+    return (document.getElementById('dialog-overlay') && document.getElementById('dialog-overlay').classList.contains('active')) ||
+           (document.getElementById('combat-overlay') && document.getElementById('combat-overlay').classList.contains('active')) ||
+           (document.getElementById('event-overlay') && document.getElementById('event-overlay').classList.contains('active')) ||
+           (document.getElementById('results-screen') && document.getElementById('results-screen').style.display === 'flex');
+}
+
+

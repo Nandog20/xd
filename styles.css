@@ -82,7 +82,6 @@ body {
 
 /* PANTALLA DE INICIO (CHARACTER CREATION) */
 #start-screen {
-    display: flex;
     justify-content: center;
     align-items: center;
     padding: 20px;
@@ -1591,3 +1590,51 @@ body {
         font-size: 3.5rem;
     }
 }
+
+/* ESTILOS DE CANVAS JUEGO 2D */
+.canvas-container {
+    background: #111019;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: var(--shadow-box);
+    overflow: hidden;
+    position: relative;
+    border-color: rgba(0, 240, 255, 0.2);
+}
+
+.canvas-instructions {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    text-align: center;
+    border-bottom: 1px dashed var(--border-color);
+    padding-bottom: 8px;
+}
+
+.canvas-instructions strong {
+    color: var(--neon-cyan);
+}
+
+#game-canvas {
+    background: #0b0b11;
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: inset 0 0 30px rgba(0,0,0,0.95);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.no-actions-prompt {
+    grid-column: span 3;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 15px;
+    border: 1px dashed var(--border-color);
+    border-radius: 8px;
+    margin: 0 auto;
+    width: 100%;
+}
+

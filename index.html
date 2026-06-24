@@ -15,7 +15,7 @@
     <button id="sfx-toggle" class="sfx-btn" title="Activar/Desactivar Sonido">🔊</button>
 
     <!-- PANTALLA DE INICIO (Character Creation) -->
-    <div id="start-screen" class="screen active">
+    <div id="start-screen" class="screen active" style="display: flex;">
         <div class="start-card">
             <div class="splash-banner">
                 <img src="school_splash.jpg" alt="High School Corridor" class="splash-img">
@@ -218,25 +218,26 @@
                     <button class="tab-btn" data-tab="tab-quests">📜 Misiones <span id="quest-count" class="badge">0</span></button>
                 </nav>
 
-                <!-- TAB DE UBICACIÓN -->
+                <!-- TAB DE UBICACIÓN (JUEGO 2D) -->
                 <div id="tab-location" class="tab-panel active">
                     <div class="location-details">
-                        <div class="location-banner">
+                        <div class="canvas-container">
+                            <div class="canvas-instructions">
+                                🎮 Mueve a tu estudiante usando las teclas <strong>WASD</strong>. Acércate a personas (emojis) u objetos interactivos y presiona <strong>[E]</strong> para interactuar o realizar acciones.
+                            </div>
+                            <canvas id="game-canvas" width="800" height="500"></canvas>
+                        </div>
+
+                        <div class="location-banner" style="margin-top: 15px;">
                             <h2 id="location-name">Salón de Clases 2-B</h2>
-                            <p id="location-desc">El centro de las lecciones diarias. Cumple el horario aquí para evitar problemas con Yamada-sensei, o registra los pupitres de tus compañeros cuando nadie esté mirando.</p>
+                            <p id="location-desc">Camina por los pasillos y entra a las habitaciones correspondientes según tu horario.</p>
                         </div>
 
                         <div class="location-actions">
-                            <h3>Acciones de la Zona</h3>
+                            <h3>Acción disponible cerca de ti</h3>
                             <div class="action-grid" id="location-action-buttons">
-                                <!-- Botones de acción contextuales por JS -->
-                            </div>
-                        </div>
-
-                        <div class="travel-section">
-                            <h3>Moverse a otra Zona (Toma 10 min, +2 de Estrés)</h3>
-                            <div class="travel-grid" id="travel-buttons">
-                                <!-- Botones de viaje generados por JS -->
+                                <!-- Se activa dinámicamente al acercarse en 2D por JS -->
+                                <p class="no-actions-prompt">Acércate a un objeto o persona interactiva en el mapa 2D.</p>
                             </div>
                         </div>
                     </div>
